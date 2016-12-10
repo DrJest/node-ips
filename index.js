@@ -181,10 +181,22 @@ const NodeIPS = function(communityURL, apiKey) {
                         });
                     }
                 }
+            },
+            'getPosts': {
+                value: (params) => {
+                    params.author = this.id;
+                    return client.getPosts(params);
+                }
+            },
+            'getTopics': {
+                value: (params) => {
+                    params.author = this.id;
+                    return client.getTopics(params);
+                }
             }
         });
 
-        client.Member.prototype.load = (id) => {
+        client.Member.prototype.load = id => {
             return authorizedRequest( "/core/members/" + parseInt(id) ).then(resp => {
                 return new Promise((resolve, reject) => {
                     if(this.id !== undefined) {
@@ -255,6 +267,45 @@ const NodeIPS = function(communityURL, apiKey) {
     this.Database = function(databaseID) {
         var database = this;
 
+        Object.defineProperties(this, {
+            'getRecords': {
+                value: (params) => {
+                    return authorizedRequest("/cms/records/" + databaseID).then(resp => {
+                        return new Promise((resolve, reject) => {
+                            resp.results.forEach((el, i) => {
+                                el = new database.Record(el);
+                            });
+                            resolve(resp);
+                        });
+                    });
+                }
+            },
+            'getReviews': {
+                value: (params) => {
+                    return authorizedRequest("/cms/reviews/" + databaseID, params).then(resp => {
+                        return new Promise((resolve, reject) => {
+                            resp.results.forEach((el, i) => {
+                                el = new database.Review(el);
+                            });
+                            resolve(resp);
+                        });
+                    });
+                }
+            },
+            'getComments': {
+                value: (params) => {
+                    return authorizedRequest("/cms/comments/" + databaseID, params).then(resp => {
+                        return new Promise((resolve, reject) => {
+                            resp.results.forEach((el, i) => {
+                                el = new database.Comment(el);
+                            });
+                            resolve(resp);
+                        });
+                    });
+                }
+            }
+        });
+
         this.Review = function(reviewObject) {
             var _author;
             Object.defineProperties(this, {
@@ -294,7 +345,7 @@ const NodeIPS = function(communityURL, apiKey) {
                 }
             });
 
-            database.Review.prototype.load = (id) => {
+            database.Review.prototype.load = id => {
                 return authorizedRequest( "/cms/reviews/" + databaseID + "/" + parseInt(id) ).then(resp => {
                     return new Promise((resolve, reject) => {
                         if(this.id !== undefined) {
@@ -316,15 +367,16 @@ const NodeIPS = function(communityURL, apiKey) {
                     ip_address: this.date || null,
                     hidden: +!!this.hidden
                 };
-                if( this.author.id === 0 && this.author.name !== undefined ) {
+                if( params.author === 0 && this.author && this.author.name !== undefined ) {
                     params.author_name = this.author.name;
-                };
-                return authorizedRequest("/cms/reviews/" + databaseID, params, "POST").then(resp => {
+                }
+                return authorizedRequest("/cms/reviews/" + databaseID + "/" + ( this.id || "" ), params, "POST").then(resp => {
                     return new Promise((resolve, reject) => {
                         if( this.id === undefined ) {
                             fillProperties.call(this, resp);
+                            this.created = true;
                         }
-                        resolve(this);
+                        return resolve(this);
                     });
                 });
             };
@@ -340,7 +392,7 @@ const NodeIPS = function(communityURL, apiKey) {
                         resolve({id:this.id, deleted:true});
                     });
                 });
-            }
+            };
 
             if( reviewObject && typeof reviewObject === "object" ) {
                 fillProperties.call(this, reviewObject);
@@ -382,7 +434,7 @@ const NodeIPS = function(communityURL, apiKey) {
                 }
             });
 
-            database.Comment.prototype.load = (id) => {
+            database.Comment.prototype.load = id => {
                 return authorizedRequest( "/cms/comments/" + databaseID + "/" + parseInt(id) ).then(resp => {
                     return new Promise((resolve, reject) => {
                         if(this.id !== undefined) {
@@ -391,8 +443,8 @@ const NodeIPS = function(communityURL, apiKey) {
                         fillProperties.call(this, resp);
                         resolve(this);
                     });
-                });           
-            }
+                });
+            };
 
             database.Comment.prototype.save = () => {
                 let params = {
@@ -403,15 +455,16 @@ const NodeIPS = function(communityURL, apiKey) {
                     ip_address: this.date || null,
                     hidden: +!!this.hidden
                 };
-                if( this.author.id === 0 && this.author.name !== undefined ) {
+                if( params.author === 0 && this.author && this.author.name !== undefined ) {
                     params.author_name = this.author.name;
-                };
-                return authorizedRequest("/cms/comments/" + databaseID, params, "POST").then(resp => {
+                }
+                return authorizedRequest("/cms/comments/" + databaseID + "/" + (this.id || ""), params, "POST").then(resp => {
                     return new Promise((resolve, reject) => {
                         if( this.id === undefined ) {
                             fillProperties.call(this, resp);
+                            this.created = true;
                         }
-                        resolve(this);
+                        return resolve(this);
                     });
                 });
             };
@@ -427,7 +480,7 @@ const NodeIPS = function(communityURL, apiKey) {
                         resolve({id:this.id, deleted:true});
                     });
                 });
-            }
+            };
 
             if( commentObject && typeof commentObject === "object" ) {
                 fillProperties.call(this, commentObject);
@@ -441,7 +494,7 @@ const NodeIPS = function(communityURL, apiKey) {
         };
 
         this.Record = function(recordObject) {
-            var _category, _author, _tags, _fields = {};
+            var _category, _author, _tags;
             Object.defineProperties(this, {
                 'title': {
                     enumerable: true,
@@ -545,7 +598,7 @@ const NodeIPS = function(communityURL, apiKey) {
                 }
             });
 
-            database.Record.prototype.load = (id) => {
+            database.Record.prototype.load = id => {
                 return authorizedRequest( "/cms/records/" + databaseID + "/" + parseInt(id) ).then(resp => {
                     return new Promise((resolve, reject) => {
                         if(this.id !== undefined) {
@@ -560,7 +613,9 @@ const NodeIPS = function(communityURL, apiKey) {
             database.Record.prototype.save = () => {
                 let fields = {};
                 for(let i in this.fields) {
-                    fields[parseInt(i.replace("field_", ""))] = this.fields[i];
+                    if( this.fields.hasOwnProperty(i) ) {
+                        fields[parseInt(i.replace("field_", ""))] = this.fields[i];
+                    }
                 }
                 let params = {
                     category: _category!==undefined ? _category.id : null,
@@ -611,7 +666,7 @@ const NodeIPS = function(communityURL, apiKey) {
                             el = new database.Comment(el);
                         });
                         resolve(resp);
-                    })
+                    });
                 });
             };
 
@@ -630,7 +685,7 @@ const NodeIPS = function(communityURL, apiKey) {
                     content: content
                 };
                 for(let i in otherParams) {
-                    if( !p.hasOwnProperty(i) ) {
+                    if( otherParams.hasOwnProperty(i) && ! p.hasOwnProperty(i) ) {
                         p[i] = otherParams[i];
                     }
                 }
@@ -649,7 +704,7 @@ const NodeIPS = function(communityURL, apiKey) {
                             el = new database.Review(el);
                         });
                         resolve(resp);
-                    })
+                    });
                 });
             };
 
@@ -669,7 +724,7 @@ const NodeIPS = function(communityURL, apiKey) {
                     content: content
                 };
                 for(let i in otherParams) {
-                    if( !p.hasOwnProperty(i) ) {
+                    if( otherParams.hasOwnProperty(i) && !p.hasOwnProperty(i) ) {
                         p[i] = otherParams[i];
                     }
                 }
@@ -680,41 +735,331 @@ const NodeIPS = function(communityURL, apiKey) {
                 fillProperties.call(this, recordObject);
             }
         };
-
-        this.getRecords = (params) => {
-            return authorizedRequest("/cms/records/" + databaseID).then(resp => {
-                return new Promise((resolve, reject) => {
-                    resp.results.forEach((el, i) => {
-                        el = new database.Record(el);
-                    });
-                    resolve(resp);
-                });
-            });
-        };
-
-        this.getReviews = (params) => {
-            return authorizedRequest("/cms/reviews/" + databaseID, params).then(resp => {
-                return new Promise((resolve, reject) => {
-                    resp.results.forEach((el, i) => {
-                        el = new database.Review(el);
-                    });
-                    resolve(resp);
-                });
-            });
-        };
-
-        this.getComments = (params) => {
-            return authorizedRequest("/cms/comments/" + databaseID, params).then(resp => {
-                return new Promise((resolve, reject) => {
-                    resp.results.forEach((el, i) => {
-                        el = new database.Comment(el);
-                    });
-                    resolve(resp);
-                });
-            });
-        };
-
     };
+
+    this.Forum = function(forumObject) {
+        Object.defineProperties(this, {
+            'id': {
+                enumerable: true,
+                value: forumObject.id
+            },
+            'name': {
+                enumerable: true,
+                value: forumObject.name
+            },
+            'topics': {
+                enumerable: true,
+                value: forumObject.topics
+            },
+            'url': {
+                enumerable: true,
+                value: forumObject.url
+            },
+            'getPosts': {
+                value: (params) => {
+                    params.forum = this.id;
+                    return client.getPosts(params);
+                }
+            },
+            'getTopics': {
+                value: (params) => {
+                    params.forum = this.id;
+                    return client.getTopics(params);
+                }
+            }
+        });
+    };
+
+    this.Post = function(postObject) {
+        var _topic, _author;
+        Object.defineProperties(this, {
+            'topic': {
+                enumerable: true,
+                get: () => _topic,
+                set: val => {
+                    if( val instanceof client.Topic ) {
+                        _topic = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _topic = new client.Topic(val);
+                    }
+                    else if( parseInt(val) === val ) {
+                        _topic = new client.Topic({ id: val });
+                    }
+                }
+            },
+            'author': {
+                enumerable: true,
+                writable: true:
+                get: () => _author,
+                set: val => {
+                    if( val instanceof client.Member ) {
+                        _author = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _author = new client.Member(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _author = new client.Member({ id: val });
+                    }
+                }
+            },
+            'post': {
+                enumerable: true,
+                writable: true
+            },
+            'author_name': {
+                enumerable: true,
+                get: () => _author.name,
+                set: val => {
+                    _author.name = val;
+                }
+            },
+            'date': {
+                enumerable: true,
+                writable: true
+            },
+            'ip_address': {
+                enumerable: true,
+                writable: true
+            },
+            'hidden': {
+                enumerable: true,
+                writable: true
+            }
+        });
+
+        client.Post.prototype.load = id => {
+            return authorizedRequest("/forums/posts/" + id).then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id !== undefined ) {
+                        return reject(new Error("AlreadyLoaded"));
+                    }
+                    fillProperties.call(this.resp);
+                    resolve(this);
+                });
+            });
+        };
+
+        client.Post.prototype.save = () => {
+            let params = {
+                author: this.author ? this.author.id : 0,
+                post: this.post,
+                hidden: +!!this.hidden,
+                date: this.date || null,
+                ip_address: this.ip_address || null
+            };
+            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+                params.author_name = this.author.name;
+            }
+            return authorizedRequest("/forums/posts/" + (this.id || ""), params, "POST").then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id === undefined ) {
+                        fillProperties.call(this, resp);
+                        this.created = true;
+                    }
+                    return resolve(this);
+                });
+            });
+        };
+
+        client.Post.prototype.delete = () => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest("/forums/posts/"+this.id, {}, "DELETE").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({id:this.id, deleted:true});
+                });
+            });
+        };
+
+        if( postObject && typeof postObject === "object" ) {
+            fillProperties.call(this, postObject);
+        }
+    };
+
+    this.getPosts = (params) => {
+        return authorizedRequest("/forums/posts").then(resp => {
+            resp.results.forEach((el,i) => {
+                el = new forum.Post(el);
+            });
+            resolve(resp);
+        });
+    };
+
+    this.Topic = function(topicObject) {
+        var _forum, _author, _tags;
+        Object.defineProperties(this, {
+            'forum': {
+                enumerable: true,
+                get: () => _forum,
+                set: val => {
+                    if( val instanceof client.Forum ) {
+                        _forum = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _forum = new client.Forum(val);
+                    }
+                    else if( parseInt(val) === val ) {
+                        _forum = new client.Forum({ id: val });
+                    }
+                }
+            },
+            'author': {
+                enumerable: true,
+                writable: true:
+                get: () => _author,
+                set: val => {
+                    if( val instanceof client.Member ) {
+                        _author = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _author = new client.Member(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _author = new client.Member({ id: val });
+                    }
+                }
+            },
+            'author_name': {
+                enumerable: true,
+                get: () => _author.name,
+                set: val => {
+                    _author.name = val;
+                }
+            },
+            'title': {
+                enumerable: true,
+                writable: true
+            },
+            'post': {
+                enumerable: true,
+                writable: true
+            },
+            'prefix': {
+                enumerable: true,
+                writable: true
+            },
+            'tags': {
+                enumerable: true,
+                get: () => Array.from(new Set(_tags)),
+                set: val => {
+                    if( val instanceof Array ) {
+                        _tags = val;
+                    }
+                    else if ( typeof val === 'string' || val instanceof String ) {
+                        _tags = val.split(",");
+                    }
+                }
+            },
+            'date': {
+                enumerable: true,
+                writable: true
+            },
+            'ip_address': {
+                enumerable: true,
+                writable: true
+            },
+            'locked': {
+                enumerable: true,
+                writable: true
+            },
+            'open_time': {
+                enumerable: true,
+                writable: true
+            },
+            'close_time': {
+                enumerable: true,
+                writable: true
+            },
+            'hidden': {
+                enumerable: true,
+                writable: true
+            },
+            'pinned': {
+                enumerable: true,
+                writable: true
+            },
+            'featured': {
+                enumerable: true,
+                writable: true
+            }
+        });
+
+        client.Topic.prototype.load = id => {
+            return authorizedRequest("/forums/topics/" + this.id).then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id !== undefined ) {
+                        return reject(new Error("AlreadyLoaded"));
+                    }
+                    fillProperties.call(this, resp);
+                    resolve(this);
+                });
+            });
+        };
+
+        client.Topic.prototype.save = () => {
+            let params = {
+                'forum': this.forum,
+                'author': this.author ? this.author.id : 0,
+                'title':  this.title,
+                'post': this.post,
+                'prefix': this.prefix || null, 
+                'tags': this.tags.join(","),
+                'date': this.date || null, 
+                'ip_address': this.ip_address || null,
+                'locked': +!!this.locked,
+                'open_time': this.open_time || null,
+                'close_time': this.close_time || null,
+                'hidden': +!!this.hidden,
+                'pinned': +!!this.pinned,
+                'featured': +!!this.featured
+            };
+            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+                params.author_name = this.author.name;
+            }
+            return authorizedRequest("/forums/topics/" + (this.id || ""), params, "POST").then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id === undefined ) {
+                        fillProperties.call(this, resp);
+                        this.created = true;
+                    }
+                    return resolve(this);
+                });
+            });
+        };
+
+        client.Topic.prototype.delete = () => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest("/forums/topics/"+this.id, {}, "DELETE").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({id:this.id, deleted:true});
+                });
+            });
+        };
+
+        if( topicObject && typeof topicObject === "object" ) {
+            fillProperties.call(this, topicObject);
+        }
+    };
+
+    this.getTopics = (params) => {
+        return authorizedRequest("/forums/topics").then(resp => {
+            resp.results.forEach((el,i) => {
+                el = new forum.Topic(el);
+            });
+            resolve(resp);
+        });
+    };
+
+    
 };
 
 module.exports = NodeIPS;
