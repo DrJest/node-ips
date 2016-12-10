@@ -1,0 +1,32 @@
+{
+  "name": "node-ips",
+  "version": "0.1.0",
+  "description": "Library to interface with Invision Power Board REST API",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DrJest/node-ips.git"
+  },
+  "keywords": [
+    "ips",
+    "ipb",
+    "invision",
+    "power",
+    "board",
+    "rest",
+    "api"
+  ],
+  "author": "Simone Albano <dc.jest@gmail.com> (https://drjest.xyz)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DrJest/node-ips/issues"
+  },
+  "homepage": "https://github.com/DrJest/node-ips#readme",
+  "dependencies": {
+    "request": "^2.79.0",
+    "url": "^0.11.0"
+  }
+}
