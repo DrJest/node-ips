@@ -26,6 +26,15 @@ const NodeIPS = function(communityURL, apiKey) {
     };
 
     var authorizedRequest = (path, params, method) => {
+        params = (p => {
+            let r = {};
+            for( let i in p ) {
+                if ( p.hasOwnProperty(i) && p[i] !== null && p[i] !== undefined ) {
+                    r[i] = p[i];
+                }
+            }
+            return r;
+        })(params);
         if( typeof method === "undefined" ) {
             method = "GET";
         }
@@ -65,6 +74,199 @@ const NodeIPS = function(communityURL, apiKey) {
                 return resolve( response );
             });
         });
+    };
+
+    var Comment = function(commentObject, item_type, databaseID) {
+        var basePath = ({
+            "record": "/cms/comments/" + databaseID,
+            "event": "/calendar/comments",
+            "image": "/gallery/comments"
+        })[item_type];
+        var _author;
+        Object.defineProperties(this, {
+            'author': {
+                enumerable: true,
+                get: () => _author,
+                set: val => {
+                    if( val instanceof client.Member ) {
+                        _author = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _author = new client.Member(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _author = new client.Member({ id: val });
+                    }
+                }
+            },
+            'author_name': {
+                enumerable: true,
+                get: () => _author.name,
+                set: val => {
+                    _author.name = val;
+                }
+            },
+            'content': {
+                enumerable: true,
+                writable: true
+            },
+            'hidden': {
+                enumerable: true,
+                writable: true
+            }
+        });
+
+        Comment.prototype.load = id => {
+            return authorizedRequest( basePath + "/" + parseInt(id) ).then(resp => {
+                return new Promise((resolve, reject) => {
+                    if(this.id !== undefined) {
+                        return reject(new Error("AlreadyLoaded"));
+                    }
+                    fillProperties.call(this, resp);
+                    resolve(this);
+                });
+            });
+        };
+
+        Comment.prototype.save = () => {
+            let params = {
+                content: this.content,
+                author: this.author ? this.author.id : 0,
+                date: this.date,
+                ip_address: this.date,
+                hidden: +!!this.hidden
+            };
+            params[item_type] = this.item_id;
+            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+                params.author_name = this.author.name;
+            }
+            return authorizedRequest( basePath + "/" + (this.id || ""), params, "POST").then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id === undefined ) {
+                        fillProperties.call(this, resp);
+                        this.created = true;
+                    }
+                    resolve(this);
+                    delete this.created;
+                });
+            });
+        };
+
+        Comment.prototype.delete = () => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest( basePath + "/" + this.id, {}, "DELETE").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({id:this.id, deleted:true});
+                });
+            });
+        };
+
+        if( commentObject && typeof commentObject === "object" ) {
+            fillProperties.call(this, commentObject);
+        }
+    };
+
+    var Review = function(reviewObject, item_type, databaseID) {
+        var basePath = ({
+            "record": "/cms/comments/" + databaseID,
+            "event": "/events/comments",
+            "image": "/gallery/comments"
+        })[item_type];
+        var _author;
+        Object.defineProperties(this, {
+            'author': {
+                enumerable: true,
+                get: () => _author,
+                set: val => {
+                    if( val instanceof client.Member ) {
+                        _author = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _author = new client.Member(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _author = new client.Member({ id: val });
+                    }
+                }
+            },
+            'author_name': {
+                enumerable: true,
+                get: () => _author.name,
+                set: val => {
+                    _author.name = val;
+                }
+            },
+            'rating': {
+                enumerable: true,
+                writable: true
+            },
+            'content': {
+                enumerable: true,
+                writable: true
+            },
+            'hidden': {
+                enumerable: true,
+                writable: true
+            }
+        });
+
+        Review.prototype.load = id => {
+            return authorizedRequest( basePath + "/" + parseInt(id) ).then(resp => {
+                return new Promise((resolve, reject) => {
+                    if(this.id !== undefined) {
+                        return reject(new Error("AlreadyLoaded"));
+                    }
+                    fillProperties.call(this, resp);
+                    resolve(this);
+                });
+            });   
+        };
+
+        Review.prototype.save = () => {
+            let params = {
+                record: this.item_id,
+                rating: this.rating,
+                content: this.content || "",
+                author: this.author ? this.author.id : 0,
+                date: this.date,
+                ip_address: this.date,
+                hidden: +!!this.hidden
+            };
+            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+                params.author_name = this.author.name;
+            }
+            return authorizedRequest( basePath + "/" + ( this.id || "" ), params, "POST").then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id === undefined ) {
+                        fillProperties.call(this, resp);
+                        this.created = true;
+                    }
+                    resolve(this);
+                    delete this.created;
+                });
+            });
+        };
+
+        Review.prototype.delete = () => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest( basePath + "/" + this.id, {}, "DELETE").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({id:this.id, deleted:true});
+                });
+            });
+        };
+
+        if( reviewObject && typeof reviewObject === "object" ) {
+            fillProperties.call(this, reviewObject);
+        }
     };
 
     this.hello = () => authorizedRequest("/core/hello");
@@ -183,14 +385,20 @@ const NodeIPS = function(communityURL, apiKey) {
                 }
             },
             'getPosts': {
-                value: (params) => {
-                    params.author = this.id;
+                value: params => {
+                    if( typeof params === "undefined" ) {
+                        params = {};
+                    }
+                    params.authors = this.id;
                     return client.getPosts(params);
                 }
             },
             'getTopics': {
-                value: (params) => {
-                    params.author = this.id;
+                value: params => {
+                    if( typeof params === "undefined" ) {
+                        params = {};
+                    }
+                    params.authors = this.id;
                     return client.getTopics(params);
                 }
             }
@@ -210,10 +418,10 @@ const NodeIPS = function(communityURL, apiKey) {
 
         client.Member.prototype.save = () => {
             let params = {
-                "name": this.name,
-                "email": this.email,
-                "group": _primaryGroup.id,
-                "customFields": this.customFields
+                name: this.name,
+                email: this.email,
+                group: _primaryGroup.id,
+                customFields: this.customFields
             };
             if( _password !== undefined ) {
                 params.password = _password;
@@ -224,7 +432,8 @@ const NodeIPS = function(communityURL, apiKey) {
                         fillProperties.call(this, resp);
                         this.created = true;
                     }
-                    return resolve(this);
+                    resolve(this);
+                    delete this.created;
                 });
             });
         };
@@ -253,7 +462,7 @@ const NodeIPS = function(communityURL, apiKey) {
         }
     };
 
-    this.getMembers = (params) => {
+    this.getMembers = params => {
         return authorizedRequest("/core/members/", params).then(function(resp) {
             return new Promise((resolve, reject) => {
                 resp.results.forEach((el, i) => {
@@ -267,233 +476,58 @@ const NodeIPS = function(communityURL, apiKey) {
     this.Database = function(databaseID) {
         var database = this;
 
-        Object.defineProperties(this, {
-            'getRecords': {
-                value: (params) => {
-                    return authorizedRequest("/cms/records/" + databaseID).then(resp => {
-                        return new Promise((resolve, reject) => {
-                            resp.results.forEach((el, i) => {
-                                el = new database.Record(el);
-                            });
-                            resolve(resp);
-                        });
+        client.Database.prototype.getRecords = params => {
+            return authorizedRequest("/cms/records/" + databaseID).then(resp => {
+                return new Promise((resolve, reject) => {
+                    resp.results.forEach((el, i) => {
+                        el = new database.Record(el);
                     });
-                }
-            },
-            'getReviews': {
-                value: (params) => {
-                    return authorizedRequest("/cms/reviews/" + databaseID, params).then(resp => {
-                        return new Promise((resolve, reject) => {
-                            resp.results.forEach((el, i) => {
-                                el = new database.Review(el);
-                            });
-                            resolve(resp);
-                        });
-                    });
-                }
-            },
-            'getComments': {
-                value: (params) => {
-                    return authorizedRequest("/cms/comments/" + databaseID, params).then(resp => {
-                        return new Promise((resolve, reject) => {
-                            resp.results.forEach((el, i) => {
-                                el = new database.Comment(el);
-                            });
-                            resolve(resp);
-                        });
-                    });
-                }
-            }
-        });
-
-        this.Review = function(reviewObject) {
-            var _author;
-            Object.defineProperties(this, {
-                'author': {
-                    enumerable: true,
-                    get: () => _author,
-                    set: val => {
-                        if( val instanceof client.Member ) {
-                            _author = val;
-                        }
-                        else if( typeof val === 'object' && val.id !== undefined ) {
-                            _author = new client.Member(val);
-                        }
-                        else if ( parseInt(val) === val ) {
-                            _author = new client.Member({ id: val });
-                        }
-                    }
-                },
-                'author_name': {
-                    enumerable: true,
-                    get: () => _author.name,
-                    set: val => {
-                        _author.name = val;
-                    }
-                },
-                'rating': {
-                    enumerable: true,
-                    writable: true
-                },
-                'content': {
-                    enumerable: true,
-                    writable: true
-                },
-                'hidden': {
-                    enumerable: true,
-                    writable: true
-                }
+                    resolve(resp);
+                });
             });
+        };
 
-            database.Review.prototype.load = id => {
-                return authorizedRequest( "/cms/reviews/" + databaseID + "/" + parseInt(id) ).then(resp => {
+        client.Database.prototype.getReviews = {
+            value: params => {
+                return authorizedRequest("/cms/reviews/" + databaseID, params).then(resp => {
                     return new Promise((resolve, reject) => {
-                        if(this.id !== undefined) {
-                            return reject(new Error("AlreadyLoaded"));
-                        }
-                        fillProperties.call(this, resp);
-                        resolve(this);
-                    });
-                });   
-            };
-
-            database.Review.prototype.save = () => {
-                let params = {
-                    record: this.item_id,
-                    rating: this.rating,
-                    content: this.content || "",
-                    author: this.author ? this.author.id : 0,
-                    date: this.date || null,
-                    ip_address: this.date || null,
-                    hidden: +!!this.hidden
-                };
-                if( params.author === 0 && this.author && this.author.name !== undefined ) {
-                    params.author_name = this.author.name;
-                }
-                return authorizedRequest("/cms/reviews/" + databaseID + "/" + ( this.id || "" ), params, "POST").then(resp => {
-                    return new Promise((resolve, reject) => {
-                        if( this.id === undefined ) {
-                            fillProperties.call(this, resp);
-                            this.created = true;
-                        }
-                        return resolve(this);
+                        resp.results.forEach((el, i) => {
+                            el = new database.Review(el);
+                        });
+                        resolve(resp);
                     });
                 });
-            };
-
-            database.Review.prototype.delete = () => {
-                if( this.id === undefined ) {
-                    return new Promise((resolve,reject) => {
-                        reject(new Error("NotLoaded"));
-                    });
-                }
-                return authorizedRequest("/cms/reviews/" + databaseID + "/" + this.id, {}, "DELETE").then(resp => {
-                    return new Promise((resolve, reject) => {
-                        resolve({id:this.id, deleted:true});
-                    });
-                });
-            };
-
-            if( reviewObject && typeof reviewObject === "object" ) {
-                fillProperties.call(this, reviewObject);
             }
         };
 
-        this.Comment = function(commentObject) {
-            var _author;
-            Object.defineProperties(this, {
-                'author': {
-                    enumerable: true,
-                    get: () => _author,
-                    set: val => {
-                        if( val instanceof client.Member ) {
-                            _author = val;
-                        }
-                        else if( typeof val === 'object' && val.id !== undefined ) {
-                            _author = new client.Member(val);
-                        }
-                        else if ( parseInt(val) === val ) {
-                            _author = new client.Member({ id: val });
-                        }
-                    }
-                },
-                'author_name': {
-                    enumerable: true,
-                    get: () => _author.name,
-                    set: val => {
-                        _author.name = val;
-                    }
-                },
-                'content': {
-                    enumerable: true,
-                    writable: true
-                },
-                'hidden': {
-                    enumerable: true,
-                    writable: true
-                }
-            });
-
-            database.Comment.prototype.load = id => {
-                return authorizedRequest( "/cms/comments/" + databaseID + "/" + parseInt(id) ).then(resp => {
+        client.Database.prototype.getComments = {
+            value: params => {
+                return authorizedRequest("/cms/comments/" + databaseID, params).then(resp => {
                     return new Promise((resolve, reject) => {
-                        if(this.id !== undefined) {
-                            return reject(new Error("AlreadyLoaded"));
-                        }
-                        fillProperties.call(this, resp);
-                        resolve(this);
+                        resp.results.forEach((el, i) => {
+                            el = new database.Comment(el);
+                        });
+                        resolve(resp);
                     });
                 });
-            };
-
-            database.Comment.prototype.save = () => {
-                let params = {
-                    record: this.item_id,
-                    content: this.content,
-                    author: this.author ? this.author.id : 0,
-                    date: this.date || null,
-                    ip_address: this.date || null,
-                    hidden: +!!this.hidden
-                };
-                if( params.author === 0 && this.author && this.author.name !== undefined ) {
-                    params.author_name = this.author.name;
-                }
-                return authorizedRequest("/cms/comments/" + databaseID + "/" + (this.id || ""), params, "POST").then(resp => {
-                    return new Promise((resolve, reject) => {
-                        if( this.id === undefined ) {
-                            fillProperties.call(this, resp);
-                            this.created = true;
-                        }
-                        return resolve(this);
-                    });
-                });
-            };
-
-            database.Comment.prototype.delete = () => {
-                if( this.id === undefined ) {
-                    return new Promise((resolve,reject) => {
-                        reject(new Error("NotLoaded"));
-                    });
-                }
-                return authorizedRequest("/cms/comments/" + databaseID + "/" + this.id, {}, "DELETE").then(resp => {
-                    return new Promise((resolve, reject) => {
-                        resolve({id:this.id, deleted:true});
-                    });
-                });
-            };
-
-            if( commentObject && typeof commentObject === "object" ) {
-                fillProperties.call(this, commentObject);
             }
         };
 
-        this.Category = function(cat) {
+        client.Database.prototype.Review = function(reviewObject) {
+            return new Review( reviewObject, "record", databaseID );
+        };
+
+        client.Database.prototype.Comment = function(commentObject) {
+            return new Comment( commentObject, "record", databaseID );
+        };
+
+        client.Database.prototype.Category = function(cat) {
             this.id = cat.id;
             this.name = cat.name;
             this.url = cat.url;
         };
 
-        this.Record = function(recordObject) {
+        client.Database.prototype.Record = function(recordObject) {
             var _category, _author, _tags;
             Object.defineProperties(this, {
                 'title': {
@@ -621,10 +655,10 @@ const NodeIPS = function(communityURL, apiKey) {
                     category: _category!==undefined ? _category.id : null,
                     author: _author.id,
                     fields: fields,
-                    prefix: this.prefix || null,
+                    prefix: this.prefix,
                     tags: this.tags.join(","),
-                    date: this.date || null,
-                    ip_address: this.ip_address || null,
+                    date: this.date,
+                    ip_address: this.ip_address,
                     locked: +!!this.locked,
                     hidden: +!!this.hidden,
                     pinned: +!!this.pinned,
@@ -636,7 +670,8 @@ const NodeIPS = function(communityURL, apiKey) {
                             fillProperties.call(this, resp);
                             this.created = true;
                         }
-                        return resolve(this);
+                        resolve(this);
+                        delete this.created;
                     });
                 });
             };
@@ -654,13 +689,13 @@ const NodeIPS = function(communityURL, apiKey) {
                 });
             };
 
-            database.Record.prototype.getComments = (params) => {
+            database.Record.prototype.getComments = params => {
                 if( this.id === undefined ) {
                     return new Promise((resolve,reject) => {
                         reject(new Error("NotLoaded"));
                     });
                 }
-                return authorizedRequest("/cms/records/" + databaseID + "/" + this.id + "/comments", {}).then(resp => {
+                return authorizedRequest("/cms/records/" + databaseID + "/" + this.id + "/comments", params).then(resp => {
                     return new Promise((resolve,reject) => {
                         resp.results.forEach((el, i) => {
                             el = new database.Comment(el);
@@ -692,13 +727,13 @@ const NodeIPS = function(communityURL, apiKey) {
                 return new database.Comment(p).save();
             };
 
-            database.Record.prototype.getReviews = (params) => {
+            database.Record.prototype.getReviews = params => {
                 if( this.id === undefined ) {
                     return new Promise((resolve,reject) => {
                         reject(new Error("NotLoaded"));
                     });
                 }
-                return authorizedRequest("/cms/records/" + databaseID + "/" + this.id + "/reviews", {}).then(resp => {
+                return authorizedRequest("/cms/records/" + databaseID + "/" + this.id + "/reviews", params).then(resp => {
                     return new Promise((resolve,reject) => {
                         resp.results.forEach((el, i) => {
                             el = new database.Review(el);
@@ -741,7 +776,7 @@ const NodeIPS = function(communityURL, apiKey) {
         Object.defineProperties(this, {
             'id': {
                 enumerable: true,
-                value: forumObject.id
+                value: typeof forumObject === "object" ? forumObject.id : forumObject
             },
             'name': {
                 enumerable: true,
@@ -756,14 +791,20 @@ const NodeIPS = function(communityURL, apiKey) {
                 value: forumObject.url
             },
             'getPosts': {
-                value: (params) => {
-                    params.forum = this.id;
+                value: params => {
+                    if( typeof params === "undefined" ) {
+                        params = {};
+                    }
+                    params.forums = this.id;
                     return client.getPosts(params);
                 }
             },
             'getTopics': {
-                value: (params) => {
-                    params.forum = this.id;
+                value: params => {
+                    if( typeof params === "undefined" ) {
+                        params = {};
+                    }
+                    params.forums = this.id;
                     return client.getTopics(params);
                 }
             }
@@ -790,7 +831,6 @@ const NodeIPS = function(communityURL, apiKey) {
             },
             'author': {
                 enumerable: true,
-                writable: true:
                 get: () => _author,
                 set: val => {
                     if( val instanceof client.Member ) {
@@ -858,7 +898,8 @@ const NodeIPS = function(communityURL, apiKey) {
                         fillProperties.call(this, resp);
                         this.created = true;
                     }
-                    return resolve(this);
+                    resolve(this);
+                    delete this.created;
                 });
             });
         };
@@ -881,12 +922,14 @@ const NodeIPS = function(communityURL, apiKey) {
         }
     };
 
-    this.getPosts = (params) => {
-        return authorizedRequest("/forums/posts").then(resp => {
-            resp.results.forEach((el,i) => {
-                el = new forum.Post(el);
+    this.getPosts = params => {
+        return authorizedRequest("/forums/posts/", params).then(resp => {
+            return new Promise((resolve, reject) => {
+                resp.results.forEach((el,i) => {
+                    el = new client.Post(el);
+                });
+                resolve(resp);
             });
-            resolve(resp);
         });
     };
 
@@ -910,7 +953,6 @@ const NodeIPS = function(communityURL, apiKey) {
             },
             'author': {
                 enumerable: true,
-                writable: true:
                 get: () => _author,
                 set: val => {
                     if( val instanceof client.Member ) {
@@ -1003,20 +1045,20 @@ const NodeIPS = function(communityURL, apiKey) {
 
         client.Topic.prototype.save = () => {
             let params = {
-                'forum': this.forum,
-                'author': this.author ? this.author.id : 0,
-                'title':  this.title,
-                'post': this.post,
-                'prefix': this.prefix || null, 
-                'tags': this.tags.join(","),
-                'date': this.date || null, 
-                'ip_address': this.ip_address || null,
-                'locked': +!!this.locked,
-                'open_time': this.open_time || null,
-                'close_time': this.close_time || null,
-                'hidden': +!!this.hidden,
-                'pinned': +!!this.pinned,
-                'featured': +!!this.featured
+                forum: this.forum,
+                author: this.author ? this.author.id : 0,
+                title:  this.title,
+                post: this.post,
+                prefix: this.prefix, 
+                tags: this.tags.join(","),
+                date: this.date, 
+                ip_address: this.ip_address,
+                locked: +!!this.locked,
+                open_time: this.open_time,
+                close_time: this.close_time,
+                hidden: +!!this.hidden,
+                pinned: +!!this.pinned,
+                featured: +!!this.featured
             };
             if( params.author === 0 && this.author && this.author.name !== undefined ) {
                 params.author_name = this.author.name;
@@ -1027,7 +1069,8 @@ const NodeIPS = function(communityURL, apiKey) {
                         fillProperties.call(this, resp);
                         this.created = true;
                     }
-                    return resolve(this);
+                    resolve(this);
+                    delete this.created;
                 });
             });
         };
@@ -1050,16 +1093,400 @@ const NodeIPS = function(communityURL, apiKey) {
         }
     };
 
-    this.getTopics = (params) => {
-        return authorizedRequest("/forums/topics").then(resp => {
-            resp.results.forEach((el,i) => {
-                el = new forum.Topic(el);
+    this.getTopics = params => {
+        return authorizedRequest("/forums/topics/", params).then(resp => {
+            return new Promise((resolve, reject) => {
+                resp.results.forEach((el,i) => {
+                    el = new client.Topic(el);
+                });
+                resolve(resp);
             });
-            resolve(resp);
         });
     };
 
-    
+    this.Calendar = function(calendarObject) {
+        Object.defineProperties(this, {
+            'id': {
+                enumerable: true,
+                value: typeof calendarObject === "object" ? calendarObject.id : calendarObject
+            },
+            'name': {
+                enumerable: true,
+                value: calendarObject.name
+            },
+            'url': {
+                enumerable: true,
+                value: calendarObject.url
+            },
+            'getEvents': {
+                value: params => {
+                    if( typeof params === "undefined" ) {
+                        params = {};
+                    }
+                    params.calendars = this.id;
+                    return client.getEvents(params);
+                }
+            },
+            'createEvent': {
+                value: params => {
+                    if( typeof params !== "object" ) {
+                        params = {};
+                    }
+                    params.calendar = this.id;
+                    return new client.Event(params).save();
+                }
+            }
+        });
+        
+        this.prototype.getComments = params => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            params.calendars = this.id;
+            return authorizedRequest("/calendar/comments", params).then(resp => {
+                return new Promise((resolve,reject) => {
+                    resp.results.forEach((el, i) => {
+                        el = new Comment(el, 'event');
+                    });
+                    resolve(resp);
+                });
+            });
+        };
+
+        this.prototype.getReviews = params => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            params.calendars = this.id;
+            return authorizedRequest("/calendar/reviews", params).then(resp => {
+                return new Promise((resolve,reject) => {
+                    resp.results.forEach((el, i) => {
+                        el = new Review(el, 'event');
+                    });
+                    resolve(resp);
+                });
+            });
+        };
+
+        this.prototype.getEvents = params => {
+            if( this.id === undefined ) {
+                return new Promise((resolve, reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            params.calendars = this.id;
+            return authorizedRequest("/calendar/events/", params).then(resp => {
+                return new Promise((resolve, reject) => {
+                    resp.results.forEach((el,i) => {
+                        el = new client.Event(el);
+                    });
+                    resolve(resp);
+                });
+            });
+        };
+    };
+
+    this.Event = function(eventObject) {
+        var _calendar, _author, _tags;
+        Object.defineProperties(this, {
+            'calendar': {
+                enumerable: true,
+                get: () => _calendar,
+                set: val => {
+                    if( val instanceof client.Calendar ) {
+                        _calendar = val;
+                    }
+                    else if ( typeof val === "object" && val.id !== undefined ) {
+                        _calendar = new client.Calendar(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _calendar = new client.Calendar({id:val});
+                    }
+                }
+            },
+            'author': {
+                enumerable: true,
+                get: () => _author,
+                set: val => {
+                    if( val instanceof client.Member ) {
+                        _author = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _author = new client.Member(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _author = new client.Member({ id: val });
+                    }
+                }
+            },
+            'title': {
+                enumerable: true,
+                writable: true
+            },
+            'description': {
+                enumerable: true,
+                writable: true
+            },
+            'start': {
+                enumerable: true,
+                writable: true
+            },
+            'end': {
+                enumerable: true,
+                writable: true
+            },
+            'recurrence': {
+                enumerable: true,
+                writable: true
+            },
+            'rsvp': {
+                enumerable: true,
+                writable: true
+            },
+            'rsvpLimit': {
+                enumerable: true,
+                writable: true
+            },
+            'location': {
+                enumerable: true,
+                writable: true
+            },
+            'prefix': {
+                enumerable: true,
+                writable: true
+            },
+            'tags': {
+                enumerable: true,
+                get: () => Array.from(new Set(_tags)),
+                set: val => {
+                    if( val instanceof Array ) {
+                        _tags = val;
+                    }
+                    else if ( typeof val === 'string' || val instanceof String ) {
+                        _tags = val.split(",");
+                    }
+                }
+            },
+            'date': {
+                enumerable: true,
+                writable: true
+            },
+            'ip_address': {
+                enumerable: true,
+                writable: true
+            },
+            'locked': {
+                enumerable: true,
+                writable: true
+            },
+            'hidden': {
+                enumerable: true,
+                writable: true
+            },
+            'featured': {
+                enumerable: true,
+                writable: true
+            }
+        });
+
+        client.Event.prototype.load = id => {
+            return authorizedRequest("/calendar/events/" + id).then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id !== undefined ) {
+                        return reject(new Error("AlreadyLoaded"));
+                    }
+                    fillProperties.call(this, resp);
+                    resolve(this);
+                });
+            });
+        };
+
+        client.Event.prototype.save = () => {
+            let params = {
+                calendar: this.calendar ? this.calendar.id : undefined,
+                author: this.author ? this.author.id : undefined,
+                title: this.title,
+                description: this.description,
+                start: this.start,
+                end: this.end,
+                recurrence: this.recurrence,
+                rsvp: this.rsvp,
+                rsvpLimit: this.rsvpLimit,
+                location: this.location,
+                prefix: this.prefix,
+                tags: this.tags.join(","),
+                date: this.date,
+                ip_address: this.ip_address,
+                locked: +!!this.locked,
+                hidden: +!!this.hidden,
+                featured: +!!this.featured
+            };
+
+            return authorizedRequest("/calendar/events/" + (this.id || ""), params, "POST").then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id === undefined ) {
+                        fillProperties.call(this, resp);
+                        this.created = true;
+                    }
+                    resolve(this);
+                    delete this.created;
+                });
+            });
+        };
+
+        client.Event.prototype.delete = () => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest("/calendar/events/"+this.id, {}, "DELETE").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({id:this.id, deleted:true});
+                });
+            });
+        };
+
+        client.Event.prototype.getRSVPs = () => {
+            if( this.id === undefined ) {
+                return new Promise((resolve, reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest("/calendar/events/" + this.id + "/rsvps").then(resp => {
+                return new Promise((resolve, reject) => {
+                    for(let i in resp) {
+                        if( resp.hasOwnProperty(i) && resp[i] instanceof Array) {
+                            for(let j in resp[i]) {
+                                if( resp[i].hasOwnProperty(j) ) {
+                                    resp[i][j] = new client.Member(resp[i][j]);
+                                }
+                            }
+                        }
+                    }
+                    resolve(resp);
+                });
+            });
+        };
+
+        client.Event.prototype.reserve = (member, response) => {
+            let mID =  member.id !== undefined ? member.id : parseInt(member);
+            return authorizedRequest("/calendar/events/" + this.id + "/rsvps/" + mID, {response:response}, "PUT").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({
+                        event: this,
+                        memberID: mID,
+                        response: response 
+                    });
+                });
+            });
+        };
+
+        client.Event.prototype.deleteRSVP = member => {
+            return authorizedRequest("/calendar/events/" + this.id + "/rsvps/" + ( member.id !== undefined ? member.id : parseInt(member) ), {}, "DELETE").then(resp => {
+                return new Promise((resolve, reject) => {
+                    resolve({
+                        event: this,
+                        member: member instanceof client.Member ? member : new client.Member(member),
+                        deletedRSVP: true
+                    });
+                });
+            });
+        };
+
+        client.Event.prototype.getComments= params => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest("/calendar/events/" + this.id + "/comments", params).then(resp => {
+                return new Promise((resolve,reject) => {
+                    resp.results.forEach((el, i) => {
+                        el = new database.Comment(el);
+                    });
+                    resolve(resp);
+                });
+            });
+        };
+
+        client.Event.prototype.comment = (content, author, otherParams) => {
+            if( typeof otherParams === "undefined" ) {
+                otherParams = {};
+            }
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            let p = {
+                item_id: this.id,
+                author: author,
+                content: content
+            };
+            for(let i in otherParams) {
+                if( otherParams.hasOwnProperty(i) && ! p.hasOwnProperty(i) ) {
+                    p[i] = otherParams[i];
+                }
+            }
+            return new Comment(p, 'event').save();
+        };
+
+        client.Event.prototype.getReviews = params => {
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            return authorizedRequest("/calendar/events/" + this.id + "/reviews", params).then(resp => {
+                return new Promise((resolve,reject) => {
+                    resp.results.forEach((el, i) => {
+                        el = new Review(el, 'event');
+                    });
+                    resolve(resp);
+                });
+            });
+        };
+
+        client.Event.prototype.review = (rating, content, author, otherParams) => {
+            if( typeof otherParams === "undefined" ) {
+                otherParams = {};
+            }
+            if( this.id === undefined ) {
+                return new Promise((resolve,reject) => {
+                    reject(new Error("NotLoaded"));
+                });
+            }
+            let p = {
+                item_id: this.id,
+                author: author,
+                rating: parseInt(rating),
+                content: content
+            };
+            for(let i in otherParams) {
+                if( otherParams.hasOwnProperty(i) && !p.hasOwnProperty(i) ) {
+                    p[i] = otherParams[i];
+                }
+            }
+            return new database.Review(p).save();
+        };
+    };
+
+    this.getEvents = params => {
+        return authorizedRequest("/calendar/events/", params).then(resp => {
+            return new Promise((resolve, reject) => {
+                resp.results.forEach((el,i) => {
+                    el = new client.Event(el);
+                });
+                resolve(resp);
+            });
+        });
+    };
+
 };
 
 module.exports = NodeIPS;
