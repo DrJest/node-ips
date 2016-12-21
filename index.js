@@ -1487,6 +1487,118 @@ const NodeIPS = function(communityURL, apiKey) {
         });
     };
 
+    /*
+    var Transaction = function(transactionObject) {
+        for( let i in transactionObject ) {
+            if( transactionObject.hasOwnProperty(i) ) {
+                Object.defineProperty(this, i, { value: transactionObject[i], enumerable: true });
+            }
+        }
+    };
+
+    this.Transaction = (id) => {
+        return authorizedRequest("/nexus/transactions/" + id).then(resp => {
+            return new Promise((resolve, reject) => {
+                resolve(new Transaction(resp));
+            });
+        });
+    };
+
+    this.getTransactions = params => {
+        return authorizedRequest("/nexus/transactions").then(resp => {
+            return new Promise((resolve, reject) => {
+                resp.results.forEach((el, i) => {
+                    el = new Transaction(el);
+                });
+                resolve(resp);
+            });
+        });
+    };
+    */
+
+    this.Blog = function() {
+
+    };
+
+    this.Entry = function() {
+        var _blog, _author, _tags;
+        Object.defineProperties(this, {
+            'blog': {
+                enumerable: true,
+                get: () => _blog,
+                set: val => {
+                    if( val instanceof client.Blog ) {
+                        _blog = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _blog = new client.Blog(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _blog = new client.Blog({ id: val });
+                    }
+                }
+            },
+            'author': {
+                enumerable: true,
+                get: () => _author,
+                set: val => {
+                    if( val instanceof client.Member ) {
+                        _author = val;
+                    }
+                    else if( typeof val === 'object' && val.id !== undefined ) {
+                        _author = new client.Member(val);
+                    }
+                    else if ( parseInt(val) === val ) {
+                        _author = new client.Member({ id: val });
+                    }
+                }
+            },
+            'title': {
+                enumerable: true,
+                writable:true
+            },
+            'entry': {
+                enumerable: true,
+                writable:true
+            },
+            'draft': {
+                enumerable: true,
+                writable:true
+            },
+            'prefix': {
+                enumerable: true,
+                writable:true
+            },
+            'tags': {
+                enumerable: true,
+                writable:true
+            },
+            'date': {
+                enumerable: true,
+                writable:true
+            },
+            'ip_address': {
+                enumerable: true,
+                writable:true
+            },
+            'locked': {
+                enumerable: true,
+                writable:true
+            },
+            'hidden': {
+                enumerable: true,
+                writable:true
+            },
+            'pinned': {
+                enumerable: true,
+                writable:true
+            },
+            'featured': {
+                enumerable: true,
+                writable:true
+            }
+        });
+    };
 };
 
 module.exports = NodeIPS;
