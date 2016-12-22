@@ -271,7 +271,8 @@ const NodeIPS = function(communityURL, apiKey) {
 
     this.hello = () => authorizedRequest("/core/hello");
 
-    this.FieldGroup = function(fg) {
+    this.FieldGroup = function(fg, key) {
+        this.key = key;
         this.name = fg.name;
         this.fields = [];
         if( fg.fields && typeof fg.fields === "object" ) {
@@ -281,13 +282,14 @@ const NodeIPS = function(communityURL, apiKey) {
                     this.fields.push(el);
                 }
                 else if( typeof el === "object" && el.name !== undefined && el.value !== undefined) {
-                    this.fields.push(new client.Field(el.name, el.value));
+                    this.fields.push(new client.Field(el.name, el.value, i));
                 }
             };
         }
     };
 
-    this.Field = function(name, value) {
+    this.Field = function(name, value, key) {
+        this.key = key;
         this.name = name;
         this.value = value;
     };
@@ -374,13 +376,12 @@ const NodeIPS = function(communityURL, apiKey) {
                 set: val => {
                     _customFields = [];
                     if ( typeof val === 'object' ) {
-                        for(let i in val ) {
-                            let el = val[i];
-                            if( el instanceof client.FieldGroup ) {
-                                return _customFields.push(el);
+                        for(let i in val) {
+                            if( val[i] instanceof client.FieldGroup ) {
+                                _customFields.push(val[i]);
                             }
-                            else if ( typeof el === "object" && el.name !== undefined ) {
-                                return _customFields.push(new client.FieldGroup(el));
+                            else if ( typeof val[i] === "object" && val[i].name !== undefined ) {
+                                _customFields.push(new client.FieldGroup(val[i], i));
                             }
                         }
                     }
@@ -419,11 +420,17 @@ const NodeIPS = function(communityURL, apiKey) {
         };
 
         client.Member.prototype.save = () => {
+            let customFields = {};
+            this.customFields.forEach((fg) => {
+                fg.fields.forEach((field) => {
+                    customFields[field.key] = field.value;
+                });
+            });
             let params = {
                 name: this.name,
                 email: this.email,
                 group: _primaryGroup.id,
-                customFields: this.customFields
+                customFields: customFields
             };
             if( _password !== undefined ) {
                 params.password = _password;
@@ -636,6 +643,7 @@ const NodeIPS = function(communityURL, apiKey) {
 
             database.Record.prototype.load = id => {
                 return authorizedRequest( "/cms/records/" + databaseID + "/" + parseInt(id) ).then(resp => {
+                    return resolve(resp);
                     return new Promise((resolve, reject) => {
                         if(this.id !== undefined) {
                             return reject(new Error("AlreadyLoaded"));
