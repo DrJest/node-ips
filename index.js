@@ -274,15 +274,16 @@ const NodeIPS = function(communityURL, apiKey) {
     this.FieldGroup = function(fg) {
         this.name = fg.name;
         this.fields = [];
-        if( fg.fields && fg.fields instanceof Array ) {
-            fg.fields.forEach((el, i) => {
+        if( fg.fields && typeof fg.fields === "object" ) {
+            for(let i in fg.fields) {
+                let el = fg.fields[i];
                 if( el instanceof client.Field ) {
                     this.fields.push(el);
                 }
                 else if( typeof el === "object" && el.name !== undefined && el.value !== undefined) {
                     this.fields.push(new client.Field(el.name, el.value));
                 }
-            });
+            };
         }
     };
 
@@ -372,15 +373,16 @@ const NodeIPS = function(communityURL, apiKey) {
                 get: () => _customFields,
                 set: val => {
                     _customFields = [];
-                    if ( val instanceof Array ) {
-                        val.forEach(el => {
+                    if ( typeof val === 'object' ) {
+                        for(let i in val ) {
+                            let el = val[i];
                             if( el instanceof client.FieldGroup ) {
                                 return _customFields.push(el);
                             }
-                            else if ( typeof el === "object" && el.name !== undefined && el.fields instanceof Array ) {
+                            else if ( typeof el === "object" && el.name !== undefined ) {
                                 return _customFields.push(new client.FieldGroup(el));
                             }
-                        });
+                        }
                     }
                 }
             },
