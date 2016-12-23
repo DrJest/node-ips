@@ -131,13 +131,13 @@ const NodeIPS = function(communityURL, apiKey) {
         Comment.prototype.save = () => {
             let params = {
                 content: this.content,
-                author: this.author ? this.author.id : 0,
+                author: this.author ? this.author.id : null,
                 date: this.date,
                 ip_address: this.date,
-                hidden: +!!this.hidden
+                hidden: this.hidden
             };
             params[item_type] = this.item_id;
-            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+            if( params.author === 0 && this.author.name !== undefined ) {
                 params.author_name = this.author.name;
             }
             return authorizedRequest( basePath + "/" + (this.id || ""), params, "POST").then(resp => {
@@ -231,12 +231,12 @@ const NodeIPS = function(communityURL, apiKey) {
                 record: this.item_id,
                 rating: this.rating,
                 content: this.content || "",
-                author: this.author ? this.author.id : 0,
+                author: this.author ? this.author.id : null,
                 date: this.date,
                 ip_address: this.date,
-                hidden: +!!this.hidden
+                hidden: this.hidden
             };
-            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+            if( params.author === 0 && this.author.name !== undefined ) {
                 params.author_name = this.author.name;
             }
             return authorizedRequest( basePath + "/" + ( this.id || "" ), params, "POST").then(resp => {
@@ -312,9 +312,20 @@ const NodeIPS = function(communityURL, apiKey) {
     };
 
     this.Member = function(memberObject) {
-        var _password, _primaryGroup, _secondaryGroups, _customFields;
+        var _id, _password, _primaryGroup, _secondaryGroups, _customFields;
 
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'name': {
                 enumerable: true,
                 writable: true
@@ -421,15 +432,17 @@ const NodeIPS = function(communityURL, apiKey) {
 
         client.Member.prototype.save = () => {
             let customFields = {};
-            this.customFields.forEach((fg) => {
-                fg.fields.forEach((field) => {
-                    customFields[field.key] = field.value;
+            if(this.customFields && this.customFields instanceof Array) {
+                this.customFields.forEach((fg) => {
+                    fg.fields.forEach((field) => {
+                        customFields[field.key] = field.value;
+                    });
                 });
-            });
+            }
             let params = {
                 name: this.name,
                 email: this.email,
-                group: _primaryGroup.id,
+                group: _primaryGroup ? _primaryGroup.id : undefined,
                 customFields: customFields
             };
             if( _password !== undefined ) {
@@ -441,8 +454,8 @@ const NodeIPS = function(communityURL, apiKey) {
                         fillProperties.call(this, resp);
                         this.created = true;
                     }
-                    resolve(this);
                     delete this.created;
+                    resolve(this);
                 });
             });
         };
@@ -605,7 +618,7 @@ const NodeIPS = function(communityURL, apiKey) {
                 },
                 'tags': {
                     enumerable: true,
-                    get: () => Array.from(new Set(_tags)),
+                    get: () => _tags ? Array.from(new Set(_tags)) : undefined,
                     set: val => {
                         if( val instanceof Array ) {
                             _tags = val;
@@ -642,7 +655,7 @@ const NodeIPS = function(communityURL, apiKey) {
             });
 
             database.Record.prototype.load = id => {
-                return authorizedRequest( "/cms/records/" + databaseID + "/" + parseInt(id) ).then(resp => {
+                return authorizedRequest( "/cms/records/" + parseInt(databaseID) + "/" + parseInt(id) ).then(resp => {
                     return resolve(resp);
                     return new Promise((resolve, reject) => {
                         if(this.id !== undefined) {
@@ -663,16 +676,16 @@ const NodeIPS = function(communityURL, apiKey) {
                 }
                 let params = {
                     category: _category!==undefined ? _category.id : null,
-                    author: _author.id,
+                    author: _author ? _author.id : null,
                     fields: fields,
                     prefix: this.prefix,
-                    tags: this.tags.join(","),
+                    tags: this.tags ? this.tags.join(",") : null,
                     date: this.date,
                     ip_address: this.ip_address,
-                    locked: +!!this.locked,
-                    hidden: +!!this.hidden,
-                    pinned: +!!this.pinned,
-                    featured: +!!this.featured
+                    locked: this.locked,
+                    hidden: this.hidden,
+                    pinned: this.pinned,
+                    featured: this.featured
                 };
                 return authorizedRequest("/cms/records/" + databaseID + "/" + ( this.id || "" ), params, "POST").then(resp => {
                     return new Promise((resolve, reject) => {
@@ -880,7 +893,7 @@ const NodeIPS = function(communityURL, apiKey) {
         });
 
         client.Post.prototype.load = id => {
-            return authorizedRequest("/forums/posts/" + id).then(resp => {
+            return authorizedRequest("/forums/posts/" + parseInt(id)).then(resp => {
                 return new Promise((resolve, reject) => {
                     if( this.id !== undefined ) {
                         return reject(new Error("AlreadyLoaded"));
@@ -893,13 +906,13 @@ const NodeIPS = function(communityURL, apiKey) {
 
         client.Post.prototype.save = () => {
             let params = {
-                author: this.author ? this.author.id : 0,
+                author: this.author ? this.author.id : null,
                 post: this.post,
-                hidden: +!!this.hidden,
+                hidden: this.hidden,
                 date: this.date || null,
                 ip_address: this.ip_address || null
             };
-            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+            if( params.author === 0 && this.author.name !== undefined ) {
                 params.author_name = this.author.name;
             }
             return authorizedRequest("/forums/posts/" + (this.id || ""), params, "POST").then(resp => {
@@ -978,7 +991,7 @@ const NodeIPS = function(communityURL, apiKey) {
             },
             'author_name': {
                 enumerable: true,
-                get: () => _author.name,
+                get: () => _author ? _author.name : undefined,
                 set: val => {
                     _author.name = val;
                 }
@@ -987,7 +1000,7 @@ const NodeIPS = function(communityURL, apiKey) {
                 enumerable: true,
                 writable: true
             },
-            'post': {
+            'posts': {
                 enumerable: true,
                 writable: true
             },
@@ -997,7 +1010,7 @@ const NodeIPS = function(communityURL, apiKey) {
             },
             'tags': {
                 enumerable: true,
-                get: () => Array.from(new Set(_tags)),
+                get: () => _tags !== undefined ? Array.from(new Set(_tags)): undefined,
                 set: val => {
                     if( val instanceof Array ) {
                         _tags = val;
@@ -1042,35 +1055,51 @@ const NodeIPS = function(communityURL, apiKey) {
         });
 
         client.Topic.prototype.load = id => {
-            return authorizedRequest("/forums/topics/" + this.id).then(resp => {
+            return authorizedRequest("/forums/topics/" + parseInt(id), {}, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
                     if( this.id !== undefined ) {
                         return reject(new Error("AlreadyLoaded"));
                     }
                     fillProperties.call(this, resp);
-                    resolve(this);
+                    resolve(resp);
+                });
+            });
+        };
+
+        client.Topic.prototype.getPosts = () => {
+            if( !this.id ) {
+                return new Promise((resolve, reject) => {
+                    reject(new Error("NotLoaded"));
+                })
+            }
+            return authorizedRequest("/forums/topics/" + this.id).then(resp => {
+                return new Promise((resolve, reject) => {
+                    if( this.id !== undefined ) {
+                        return reject(new Error("AlreadyLoaded"));
+                    }
+                    resolve(resp);
                 });
             });
         };
 
         client.Topic.prototype.save = () => {
             let params = {
-                forum: this.forum,
-                author: this.author ? this.author.id : 0,
+                forum: this.forum ? this.forum.id : null,
+                author: this.author ? this.author.id : null,
                 title:  this.title,
                 post: this.post,
                 prefix: this.prefix, 
-                tags: this.tags.join(","),
+                tags: this.tags ? this.tags.join(",") : null,
                 date: this.date, 
                 ip_address: this.ip_address,
-                locked: +!!this.locked,
+                locked: this.locked,
                 open_time: this.open_time,
                 close_time: this.close_time,
-                hidden: +!!this.hidden,
-                pinned: +!!this.pinned,
-                featured: +!!this.featured
+                hidden: this.hidden,
+                pinned: this.pinned,
+                featured: this.featured
             };
-            if( params.author === 0 && this.author && this.author.name !== undefined ) {
+            if( params.author === 0 && this.author.name !== undefined ) {
                 params.author_name = this.author.name;
             }
             return authorizedRequest("/forums/topics/" + (this.id || ""), params, "POST").then(resp => {
@@ -1271,7 +1300,7 @@ const NodeIPS = function(communityURL, apiKey) {
             },
             'tags': {
                 enumerable: true,
-                get: () => Array.from(new Set(_tags)),
+                get: () => _tags ? Array.from(new Set(_tags)) : undefined,
                 set: val => {
                     if( val instanceof Array ) {
                         _tags = val;
@@ -1304,7 +1333,7 @@ const NodeIPS = function(communityURL, apiKey) {
         });
 
         client.Event.prototype.load = id => {
-            return authorizedRequest("/calendar/events/" + id).then(resp => {
+            return authorizedRequest("/calendar/events/" + parseInt(id)).then(resp => {
                 return new Promise((resolve, reject) => {
                     if( this.id !== undefined ) {
                         return reject(new Error("AlreadyLoaded"));
@@ -1317,8 +1346,8 @@ const NodeIPS = function(communityURL, apiKey) {
 
         client.Event.prototype.save = () => {
             let params = {
-                calendar: this.calendar ? this.calendar.id : undefined,
-                author: this.author ? this.author.id : undefined,
+                calendar: this.calendar ? this.calendar.id : null,
+                author: this.author ? this.author.id : null,
                 title: this.title,
                 description: this.description,
                 start: this.start,
@@ -1328,12 +1357,12 @@ const NodeIPS = function(communityURL, apiKey) {
                 rsvpLimit: this.rsvpLimit,
                 location: this.location,
                 prefix: this.prefix,
-                tags: this.tags.join(","),
+                tags: this.tags ? this.tags.join(",") : null,
                 date: this.date,
                 ip_address: this.ip_address,
-                locked: +!!this.locked,
-                hidden: +!!this.hidden,
-                featured: +!!this.featured
+                locked: this.locked,
+                hidden: this.hidden,
+                featured: this.featured
             };
 
             return authorizedRequest("/calendar/events/" + (this.id || ""), params, "POST").then(resp => {

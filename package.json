@@ -1,6 +1,6 @@
 {
   "name": "node-ips",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Library to interface with Invision Power Board REST API",
   "main": "index.js",
   "scripts": {
