@@ -82,8 +82,19 @@ const NodeIPS = function(communityURL, apiKey) {
             "event": "/calendar/comments",
             "image": "/gallery/comments"
         })[item_type];
-        var _author;
+        var _id, _author;
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'author': {
                 enumerable: true,
                 get: () => _author,
@@ -142,8 +153,8 @@ const NodeIPS = function(communityURL, apiKey) {
             }
             return authorizedRequest( basePath + "/" + (this.id || ""), params, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
+                    fillProperties.call(this, resp);
                     if( this.id === undefined ) {
-                        fillProperties.call(this, resp);
                         this.created = true;
                     }
                     resolve(this);
@@ -176,8 +187,19 @@ const NodeIPS = function(communityURL, apiKey) {
             "event": "/events/comments",
             "image": "/gallery/comments"
         })[item_type];
-        var _author;
+        var _id, _author;
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'author': {
                 enumerable: true,
                 get: () => _author,
@@ -241,8 +263,8 @@ const NodeIPS = function(communityURL, apiKey) {
             }
             return authorizedRequest( basePath + "/" + ( this.id || "" ), params, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
+                    fillProperties.call(this, resp);
                     if( this.id === undefined ) {
-                        fillProperties.call(this, resp);
                         this.created = true;
                     }
                     resolve(this);
@@ -319,7 +341,7 @@ const NodeIPS = function(communityURL, apiKey) {
                 enumerable:true,
                 get: () => _id,
                 set: val => {
-                    if(_id) {
+                    if(_id && _id != val) {
                         throw new Error("AlreadyLoaded");
                         return;
                     }
@@ -450,8 +472,8 @@ const NodeIPS = function(communityURL, apiKey) {
             }
             return authorizedRequest("/core/members/"+( this.id || "" ), params, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
+                    fillProperties.call(this, resp);
                     if( this.id === undefined ) {
-                        fillProperties.call(this, resp);
                         this.created = true;
                     }
                     delete this.created;
@@ -550,8 +572,19 @@ const NodeIPS = function(communityURL, apiKey) {
         };
 
         client.Database.prototype.Record = function(recordObject) {
-            var _category, _author, _tags;
+            var _id, _category, _author, _tags;
             Object.defineProperties(this, {
+                'id': {
+                    enumerable:true,
+                    get: () => _id,
+                    set: val => {
+                        if(_id && _id != val) {
+                            throw new Error("AlreadyLoaded");
+                            return;
+                        }
+                        _id = parseInt(val);
+                    }
+                },
                 'title': {
                     enumerable: true,
                     get: () => {
@@ -689,8 +722,8 @@ const NodeIPS = function(communityURL, apiKey) {
                 };
                 return authorizedRequest("/cms/records/" + databaseID + "/" + ( this.id || "" ), params, "POST").then(resp => {
                     return new Promise((resolve, reject) => {
+                        fillProperties.call(this, resp);
                         if( this.id === undefined ) {
-                            fillProperties.call(this, resp);
                             this.created = true;
                         }
                         resolve(this);
@@ -835,8 +868,19 @@ const NodeIPS = function(communityURL, apiKey) {
     };
 
     this.Post = function(postObject) {
-        var _topic, _author;
+        var _id, _topic, _author;
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'topic': {
                 enumerable: true,
                 get: () => _topic,
@@ -917,8 +961,8 @@ const NodeIPS = function(communityURL, apiKey) {
             }
             return authorizedRequest("/forums/posts/" + (this.id || ""), params, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
+                    fillProperties.call(this, resp);
                     if( this.id === undefined ) {
-                        fillProperties.call(this, resp);
                         this.created = true;
                     }
                     resolve(this);
@@ -957,8 +1001,19 @@ const NodeIPS = function(communityURL, apiKey) {
     };
 
     this.Topic = function(topicObject) {
-        var _forum, _author, _tags;
+        var _id, _forum, _author, _tags;
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'forum': {
                 enumerable: true,
                 get: () => _forum,
@@ -1104,8 +1159,8 @@ const NodeIPS = function(communityURL, apiKey) {
             }
             return authorizedRequest("/forums/topics/" + (this.id || ""), params, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
+                    fillProperties.call(this, resp);
                     if( this.id === undefined ) {
-                        fillProperties.call(this, resp);
                         this.created = true;
                     }
                     resolve(this);
@@ -1230,8 +1285,19 @@ const NodeIPS = function(communityURL, apiKey) {
     };
 
     this.Event = function(eventObject) {
-        var _calendar, _author, _tags;
+        var _id, _calendar, _author, _tags;
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'calendar': {
                 enumerable: true,
                 get: () => _calendar,
@@ -1367,8 +1433,8 @@ const NodeIPS = function(communityURL, apiKey) {
 
             return authorizedRequest("/calendar/events/" + (this.id || ""), params, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
+                    fillProperties.call(this, resp);
                     if( this.id === undefined ) {
-                        fillProperties.call(this, resp);
                         this.created = true;
                     }
                     resolve(this);
@@ -1560,8 +1626,19 @@ const NodeIPS = function(communityURL, apiKey) {
     };
 
     this.Entry = function() {
-        var _blog, _author, _tags;
+        var _id, _blog, _author, _tags;
         Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
             'blog': {
                 enumerable: true,
                 get: () => _blog,
