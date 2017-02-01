@@ -1110,6 +1110,7 @@ const NodeIPS = function(communityURL, apiKey) {
         });
 
         client.Topic.prototype.load = id => {
+            // this does the trick
             return authorizedRequest("/forums/topics/" + parseInt(id), {}, "POST").then(resp => {
                 return new Promise((resolve, reject) => {
                     if( this.id !== undefined ) {
@@ -1121,13 +1122,13 @@ const NodeIPS = function(communityURL, apiKey) {
             });
         };
 
-        client.Topic.prototype.getPosts = () => {
+        client.Topic.prototype.getPosts = (params) => {
             if( !this.id ) {
                 return new Promise((resolve, reject) => {
                     reject(new Error("NotLoaded"));
                 })
             }
-            return authorizedRequest("/forums/topics/" + this.id).then(resp => {
+            return authorizedRequest("/forums/topics/" + this.id, params).then(resp => {
                 return new Promise((resolve, reject) => {
                     if( this.id !== undefined ) {
                         return reject(new Error("AlreadyLoaded"));
@@ -1592,25 +1593,52 @@ const NodeIPS = function(communityURL, apiKey) {
         });
     };
 
-    /*
     var Transaction = function(transactionObject) {
         for( let i in transactionObject ) {
             if( transactionObject.hasOwnProperty(i) ) {
                 Object.defineProperty(this, i, { value: transactionObject[i], enumerable: true });
             }
         }
+        return;
+        Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
+        })
     };
 
-    this.Transaction = (id) => {
-        return authorizedRequest("/nexus/transactions/" + id).then(resp => {
-            return new Promise((resolve, reject) => {
-                resolve(new Transaction(resp));
-            });
-        });
+    var Invoice = function(invoiceObject) {
+        for( let i in invoiceObject ) {
+            if( invoiceObject.hasOwnProperty(i) ) {
+                Object.defineProperty(this, i, { value: invoiceObject[i], enumerable: true });
+            }
+        }
+        return;
+        Object.defineProperties(this, {
+            'id': {
+                enumerable:true,
+                get: () => _id,
+                set: val => {
+                    if(_id && _id != val) {
+                        throw new Error("AlreadyLoaded");
+                        return;
+                    }
+                    _id = parseInt(val);
+                }
+            },
+        })
     };
 
     this.getTransactions = params => {
-        return authorizedRequest("/nexus/transactions").then(resp => {
+        return authorizedRequest("/nexus/transactions/", params).then(resp => {
             return new Promise((resolve, reject) => {
                 resp.results.forEach((el, i) => {
                     el = new Transaction(el);
@@ -1619,7 +1647,17 @@ const NodeIPS = function(communityURL, apiKey) {
             });
         });
     };
-    */
+    
+    this.getInvoices = params => {
+        return authorizedRequest("/nexus/invoices/", params).then(resp => {
+            return new Promise((resolve, reject) => {
+                resp.results.forEach((el, i) => {
+                    el = new Invoice(el);
+                });
+                resolve(resp);
+            });
+        });
+    };
 
     this.Blog = function() {
 
